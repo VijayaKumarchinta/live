@@ -1,0 +1,27 @@
+CREATE ROLE iiot_writer LOGIN PASSWORD 'change_me';
+CREATE ROLE iiot_reader LOGIN PASSWORD 'change_me';
+CREATE DATABASE iiot_dashboard OWNER postgres;
+
+\c iiot_dashboard
+
+CREATE SCHEMA telemetry AUTHORIZATION iiot_writer;
+CREATE SCHEMA audit AUTHORIZATION iiot_writer;
+CREATE SCHEMA config AUTHORIZATION postgres;
+
+GRANT USAGE ON SCHEMA config TO iiot_writer, iiot_reader;
+GRANT USAGE ON SCHEMA telemetry TO iiot_reader;
+GRANT USAGE ON SCHEMA audit TO iiot_reader;
+
+GRANT CREATE ON SCHEMA telemetry TO iiot_writer;
+GRANT CREATE ON SCHEMA audit TO iiot_writer;
+
+GRANT SELECT ON ALL TABLES IN SCHEMA config TO iiot_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA telemetry TO iiot_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA audit TO iiot_reader;
+
+GRANT REFERENCES ON ALL TABLES IN SCHEMA config TO iiot_writer;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA config GRANT SELECT ON TABLES TO iiot_reader;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA config GRANT REFERENCES ON TABLES TO iiot_writer;
+ALTER DEFAULT PRIVILEGES FOR ROLE iiot_writer IN SCHEMA telemetry GRANT SELECT ON TABLES TO iiot_reader;
+ALTER DEFAULT PRIVILEGES FOR ROLE iiot_writer IN SCHEMA audit GRANT SELECT ON TABLES TO iiot_reader;
