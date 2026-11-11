@@ -31,13 +31,17 @@ class Ingester:
         self._last_sequence = batch_writer.load_cursor(line_id)
         self._stats = {"received": 0, "accepted": 0, "rejected_schema": 0, "rejected_unknown": 0, "rejected_queue_full": 0, "duplicate_message_id": 0, "duplicate_sequence": 0}
         self._rows_buffer: list = []
+        self._pending_msgs: list = []
         self._last_flush: float = 0.0
         self._flush_interval: float = 2.0
         self._buffer_last_seq: int = 0
         self._buffer_last_mid: str = ""
         self._buffer_last_ts: datetime | None = None
+        self._client = None
 
     def _on_message(self, client, userdata, msg) -> None:
+        if self._client is None:
+            self._client = client
         self._stats["received"] += 1
         try:
             record = json.loads(msg.payload)
@@ -87,27 +91,26 @@ class Ingester:
                 self._rows_buffer.append(self.queue.get_nowait())
             except queue.Empty:
                 break
+        self._pending_msgs.append((msg.mid, msg.qos))
         now_mono = time.monotonic()
         should_flush = (
             len(self._rows_buffer) >= 200
             or (self._rows_buffer and now_mono - self._last_flush >= self._flush_interval)
         )
         if should_flush:
-            self._flush(client, msg)
-            self._last_flush = now_mono
-        else:
-            client.ack(msg.mid, msg.qos)
+            self._flush(client)
 
-    def _flush(self, client, msg) -> None:
+    def _flush(self, client) -> None:
         if not self._rows_buffer:
-            client.ack(msg.mid, msg.qos)
             return
         try:
             inserted = batch_writer.insert_batch(self.line_id, self._rows_buffer, self._buffer_last_seq, self._buffer_last_mid, self._buffer_last_ts)
             logger.info("flushed %d rows, inserted=%d", len(self._rows_buffer), inserted)
+            for mid, qos in self._pending_msgs:
+                client.ack(mid, qos)
             self._rows_buffer = []
+            self._pending_msgs = []
             self._last_flush = time.monotonic()
-            client.ack(msg.mid, msg.qos)
         except Exception:
             logger.exception("flush failed for %d rows", len(self._rows_buffer))
 
@@ -117,7 +120,11 @@ class Ingester:
         try:
             inserted = batch_writer.insert_batch(self.line_id, self._rows_buffer, self._buffer_last_seq, self._buffer_last_mid, self._buffer_last_ts)
             logger.info("shutdown flush: %d rows, inserted=%d", len(self._rows_buffer), inserted)
+            if self._client is not None:
+                for mid, qos in self._pending_msgs:
+                    self._client.ack(mid, qos)
             self._rows_buffer = []
+            self._pending_msgs = []
         except Exception:
             logger.exception("shutdown flush failed")
 
@@ -129,6 +136,7 @@ class Ingester:
         def _shutdown(signum, frame):
             logger.info("shutdown signal received")
             self._stop.set()
+            self._flush_safe()
             sub.stop()
 
         signal.signal(signal.SIGINT, _shutdown)
@@ -136,5 +144,4 @@ class Ingester:
         try:
             sub.connect_and_loop()
         finally:
-            self._flush_safe()
             logger.info("ingester stats: %s", self._stats)
