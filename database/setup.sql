@@ -1,5 +1,5 @@
-CREATE ROLE iiot_writer LOGIN PASSWORD 'Vijay147';
-CREATE ROLE iiot_reader LOGIN PASSWORD 'Vijay147';
+CREATE ROLE iiot_writer LOGIN PASSWORD '{__SET_IN_ENV__}';
+CREATE ROLE iiot_reader LOGIN PASSWORD '{__SET_IN_ENV__}';
 CREATE DATABASE iiot_dashboard OWNER postgres;
 
 \c iiot_dashboard

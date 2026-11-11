@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS telemetry.measurement (
 CREATE TABLE IF NOT EXISTS audit.backfill_batch (
     batch_id        BIGSERIAL PRIMARY KEY,
     source_file     TEXT NOT NULL,
-    file_sha256     CHAR(64) NOT NULL UNIQUE,
+    file_sha256 CHAR(64) NOT NULL,
     line_id         SMALLINT NOT NULL REFERENCES config.line(line_id),
     total_rows      INTEGER NOT NULL DEFAULT 0,
     inserted_rows   INTEGER NOT NULL DEFAULT 0,

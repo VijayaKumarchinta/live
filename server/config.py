@@ -1,4 +1,4 @@
-﻿import os
+import os
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -37,25 +37,21 @@ class Settings:
     MQTT_CLIENT_KEY: str = os.getenv("MQTT_CLIENT_KEY", "")
     MQTT_TOPIC_TEMPLATE: str = _req("MQTT_TOPIC_TEMPLATE")
     MQTT_QOS: int = _int("MQTT_QOS", 1)
-
-    SOURCE_WINDOW_MINUTES: int = _int("SOURCE_WINDOW_MINUTES", 10)
-    DASHBOARD_RENDER_INTERVAL_S: int = _int("DASHBOARD_RENDER_INTERVAL_S", 5)
     PLANT_TZ: str = os.getenv("PLANT_TZ", "Asia/Kolkata")
     CUTOVER_TS: str = _req("CUTOVER_TS")
-    RETENTION_MONTHS: int = _int("RETENTION_MONTHS", 12)
 
     API_HOST: str = os.getenv("API_HOST", "127.0.0.1")
     API_PORT: int = _int("API_PORT", 8000)
     FLASK_DEBUG: bool = os.getenv("FLASK_DEBUG", "0") == "1"
     FLASK_SECRET_KEY: str = os.getenv("FLASK_SECRET_KEY", "dev")
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
-
-    WS_HEARTBEAT_S: int = _int("WS_HEARTBEAT_S", 30)
-    WS_CLIENT_QUEUE_MAX: int = _int("WS_CLIENT_QUEUE_MAX", 1000)
     INGEST_QUEUE_MAX: int = _int("INGEST_QUEUE_MAX", 10000)
+    # Future-block settings (removed to avoid dead code): SOURCE_WINDOW_MINUTES,
+    # DASHBOARD_RENDER_INTERVAL_S, RETENTION_MONTHS, SPILL_DIR, WS_HEARTBEAT_S,
+    # WS_CLIENT_QUEUE_MAX. Re-add when their implementing blocks land.
+
 
     ARCHIVE_DIR: str = os.getenv("ARCHIVE_DIR", "./archive/backfill")
-    SPILL_DIR: str = os.getenv("SPILL_DIR", "./ingest_spill")
     LOG_DIR: str = os.getenv("LOG_DIR", "./logs")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 

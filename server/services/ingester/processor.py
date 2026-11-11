@@ -29,7 +29,7 @@ class Ingester:
         self._validator = jsonschema.Draft202012Validator(_load_schema())
         self._seen_message_ids: deque = deque(maxlen=1000)
         self._last_sequence = batch_writer.load_cursor(line_id)
-        self._stats = {"received": 0, "accepted": 0, "rejected_schema": 0, "rejected_unknown": 0, "rejected_queue_full": 0, "duplicate_message_id": 0, "duplicate_sequence": 0}
+        self._stats = {"received": 0, "accepted": 0, "rejected_schema": 0, "rejected_unknown": 0, "rejected_queue_full": 0, "rejected_wrong_line": 0, "duplicate_message_id": 0, "duplicate_sequence": 0}
         self._rows_buffer: list = []
         self._pending_msgs: list = []
         self._last_flush: float = 0.0
@@ -56,6 +56,13 @@ class Ingester:
             logger.warning("schema error: %s", errors[0].message)
             client.ack(msg.mid, msg.qos)
             return
+        line_id_msg = int(record["line_id"])
+        if line_id_msg != self.line_id:
+            self._stats["rejected_wrong_line"] += 1
+            logger.warning("wrong line_id: got %d, expected %d, mid=%s", line_id_msg, self.line_id, record.get("message_id"))
+            client.ack(msg.mid, msg.qos)
+            return
+
         mid = record["message_id"]
         if mid in self._seen_message_ids:
             self._stats["duplicate_message_id"] += 1
@@ -128,6 +135,17 @@ class Ingester:
         except Exception:
             logger.exception("shutdown flush failed")
 
+    def _flush_timer_loop(self) -> None:
+        while not self._stop.is_set():
+            self._stop.wait(self._flush_interval)
+            if self._stop.is_set():
+                return
+            if self._rows_buffer and self._client is not None:
+                try:
+                    self._flush(self._client)
+                except Exception:
+                    logger.exception("timer-driven flush failed")
+
     def run(self) -> None:
         topic = settings.MQTT_TOPIC_TEMPLATE.format(line_id=self.line_id, machine_id="+")
         logger.info("ingester subscribing to %s (last_sequence=%d)", topic, self._last_sequence)
@@ -141,6 +159,10 @@ class Ingester:
 
         signal.signal(signal.SIGINT, _shutdown)
         signal.signal(signal.SIGTERM, _shutdown)
+
+        flush_timer = threading.Thread(target=self._flush_timer_loop, daemon=True)
+        flush_timer.start()
+
         try:
             sub.connect_and_loop()
         finally:

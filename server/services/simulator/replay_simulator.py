@@ -46,11 +46,18 @@ def run(parquet_path: Path, line_id: int, machine_id: int, time_base: str, loop:
     pub.connect()
     topic = settings.MQTT_TOPIC_TEMPLATE.format(line_id=line_id, machine_id=machine_id)
     logger.info("publishing to %s (time_base=%s)", topic, time_base)
+
+    import pyarrow.parquet as pq
+    parquet_rows = pq.ParquetFile(parquet_path).metadata.num_rows
+    step_seconds = 10
+    loop_offset = parquet_rows * step_seconds
+    logger.info("parquet has %d rows; loop offset = %ds", parquet_rows, loop_offset)
+
     total = 0
     loop_count = 0
     try:
         while True:
-            for record in iter_records(parquet_path, line_id, machine_id, time_base, settings.PLANT_TZ, start_sequence + total, loop_count * 10 * 2139):
+            for record in iter_records(parquet_path, line_id, machine_id, time_base, settings.PLANT_TZ, start_sequence + total, loop_count * loop_offset):
                 pub.publish(topic, json.dumps(record), qos=settings.MQTT_QOS)
                 total += 1
                 if max_rows and total >= max_rows:
