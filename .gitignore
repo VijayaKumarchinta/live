@@ -168,3 +168,6 @@ tmp/
 temp/
 # Local tooling cache
 .freebuff/
+
+# Test venv used for reproducibility checks
+.venv_test/
