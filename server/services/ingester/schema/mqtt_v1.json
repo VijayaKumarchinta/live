@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Line Speed 30 MQTT Telemetry v1.0",
+  "type": "object",
+  "required": ["schema_version", "message_id", "line_id", "machine_id", "timestamp", "sequence", "measurements"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "message_id": { "type": "string", "minLength": 36, "maxLength": 36 },
+    "line_id": { "type": "integer", "minimum": 1 },
+    "machine_id": { "type": "integer", "minimum": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "measurements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["tag", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "tag": { "type": "string", "minLength": 1 },
+          "value": { "type": "number" },
+          "quality": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}
