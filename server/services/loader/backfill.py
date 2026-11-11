@@ -1,21 +1,15 @@
-from __future__ import annotations
-
 import hashlib
 from pathlib import Path
 from typing import Dict, List
-
 import pandas as pd
 from sqlalchemy import text
-
 from app.db.engine import writer_engine
 from config import settings
 from services.loader.normalizer import normalize
 from services.loader.validator import validate_dataframe
 
-
 SOURCE_HISTORICAL = 1
 BATCH_SIZE = 1000
-
 
 def sha256_of(path: Path) -> str:
     h = hashlib.sha256()
@@ -24,7 +18,6 @@ def sha256_of(path: Path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
-
 def load_sensor_registry(line_id: int) -> Dict[str, int]:
     with writer_engine.connect() as conn:
         rows = conn.execute(
@@ -32,7 +25,6 @@ def load_sensor_registry(line_id: int) -> Dict[str, int]:
             {"line_id": line_id},
         ).all()
     return {row.tag: row.sensor_id for row in rows}
-
 
 def already_imported(file_sha256: str) -> bool:
     with writer_engine.connect() as conn:
@@ -44,7 +36,6 @@ def already_imported(file_sha256: str) -> bool:
             {"sha": file_sha256},
         ).first()
     return row is not None
-
 
 def create_batch(source_file: str, file_sha256: str, line_id: int) -> int:
     with writer_engine.begin() as conn:
@@ -58,7 +49,6 @@ def create_batch(source_file: str, file_sha256: str, line_id: int) -> int:
             {"source_file": source_file, "sha": file_sha256, "line_id": line_id},
         ).first()
     return int(row.batch_id)
-
 
 def finalize_batch(
     batch_id: int,
@@ -87,7 +77,6 @@ def finalize_batch(
             },
         )
 
-
 def insert_measurements(rows: List[dict]) -> int:
     if not rows:
         return 0
@@ -104,7 +93,6 @@ def insert_measurements(rows: List[dict]) -> int:
             result = conn.execute(stmt, chunk)
             total += result.rowcount or 0
     return total
-
 
 def run_backfill(parquet_path: Path, line_id: int) -> dict:
     file_sha = sha256_of(parquet_path)
