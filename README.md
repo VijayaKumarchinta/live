@@ -13,7 +13,7 @@ A production-ready, Phase 1–4 skeleton of the **Line Speed 30** industrial IoT
 | Database layer | `server/app/db/{base,engine,session}.py` — `Base` declarative class, `writer_engine` and `reader_engine` with pool tuning and statement timeouts |
 | Server entrypoint | `server/run.py` — Flask app factory, `GET /health` pings both engines, returns `{status, database}` |
 | Roles & schemas | `iiot_writer` (WRITE on telemetry/audit, SELECT on config), `iiot_reader` (SELECT only), three schemas: `config`, `telemetry`, `audit` |
-| DB scripts | `database/setup.sql`, `database/schema.sql`, `database/indexes.sql`, `database/partitions.sql`, `database/seed.sql` |
+| DB scripts | `database/setup.sql`, `database/setup.sql (then schema_config.sql, schema_telemetry.sql, partitions.sql, ingest_cursor.sql, indexes.sql, seed.sql)`, `database/indexes.sql`, `database/partitions.sql`, `database/seed.sql` |
 | Historical backfill | `server/services/loader/` (clean/normalizer/validator/backfill) ingested **68,448** rows from the cleaned Parquet into `telemetry.measurement_2026_04` |
 | MQTT pipeline | `server/services/{simulator,ingester}/` — Paho publisher, replay simulator (`--time-base now|parquet`), subscriber, batch writer, ingester processor, ingester entrypoint |
 | Frontend | `client/` — Vite + Vue 3 scaffold with `src/components/`, `src/stores/`, `src/services/`, `src/views/`, `src/router/`, `.env`, `.env.example`, `package.json`, `vite.config.js` |

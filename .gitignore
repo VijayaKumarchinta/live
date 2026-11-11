@@ -171,3 +171,6 @@ temp/
 
 # Test venv used for reproducibility checks
 .venv_test/
+
+*.bak
+*.broken
