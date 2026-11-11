@@ -174,3 +174,6 @@ temp/
 
 *.bak
 *.broken
+
+# Review bundles (generated)
+*.zip
