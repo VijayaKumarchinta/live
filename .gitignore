@@ -1,0 +1,170 @@
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Type checkers / linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+
+# ============================================================
+# Node / Vue / Vite
+# ============================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+client/dist/
+client/dist-ssr/
+client/*.local
+client/.vite/
+
+# ============================================================
+# Environment files (secrets)
+# ============================================================
+.env
+.env.*
+!.env.example
+!.env.template
+server/.env
+client/.env
+*.env.local
+*.env.production
+
+# ============================================================
+# Project-specific runtime artifacts
+# ============================================================
+
+# Logs
+logs/
+*.log
+*.log.*
+!logs/.gitkeep
+
+# Ingestion spill files
+ingest_spill/
+ingest_spill/*
+!ingest_spill/.gitkeep
+
+# Archive backfill (large binary data)
+# Comment these out if you want to commit the source Excel/Parquet.
+archive/backfill/*
+!archive/backfill/.gitkeep
+
+# Certificate files (MQTT TLS)
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+certs/
+server/certs/
+
+# ============================================================
+# Data files (kept out of git; archive separately)
+# ============================================================
+*.xlsx
+*.xls
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+
+# ============================================================
+# Docker / Kubernetes (if added later)
+# ============================================================
+.docker/
+.dockerignore
+*.pid
+
+# ============================================================
+# OS junk
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# IDE / Editor
+# ============================================================
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ============================================================
+# Temporary / misc
+# ============================================================
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+.cache/
+tmp/
+temp/
+# Local tooling cache
+.freebuff/
