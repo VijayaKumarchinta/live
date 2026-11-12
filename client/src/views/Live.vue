@@ -27,37 +27,26 @@ const STATS_CARDS = [
 ]
 
 const CHARTS = [
-  { id: 'deltat',   title: 'Chart 1 · Delta T',               sub: 'Sheet1 chart 1',                          sensors: [{ id: 32, name: 'Delta T °C', color: '#DC2626' }] },
-  { id: 'dt_sp',    title: 'Chart 2 · Delta T vs Burner SP',  sub: 'Set temp should not rise with speed',     sensors: [{ id: 32, name: 'Delta T °C', color: '#DC2626' }, { id: 3, name: 'Burner SP', color: '#2563EB' }] },
-  { id: 'dt_oil',   title: 'Chart 3 · Delta T vs Oil level',  sub: 'Sheet1 chart 3',                          sensors: [{ id: 32, name: 'Delta T °C', color: '#DC2626' }, { id: 5, name: 'Oil level', color: '#D97706' }] },
-  { id: 'burner',   title: 'Chart 4 · Burner load',            sub: 'Sheet1 chart 4',                          sensors: [{ id: 1,  name: 'Burner load %', color: '#16A34A' }] },
-  { id: 'moisture', title: 'Chart 5 · Moisture',               sub: 'Sheet1 chart 5',                          sensors: [{ id: 25, name: 'Moisture', color: '#7C3AED' }] },
+  { id: 'deltat',   title: 'Chart 1 · Delta T',               sub: 'Sheet1 chart 1',                      sensors: [{ id: 32, name: 'Delta T °C', color: '#DC2626' }] },
+  { id: 'dt_sp',    title: 'Chart 2 · Delta T vs Burner SP',  sub: 'Set temp should not rise with speed', sensors: [{ id: 32, name: 'Delta T °C', color: '#DC2626' }, { id: 3, name: 'Burner SP', color: '#2563EB' }] },
+  { id: 'dt_oil',   title: 'Chart 3 · Delta T vs Oil level',  sub: 'Sheet1 chart 3',                      sensors: [{ id: 32, name: 'Delta T °C', color: '#DC2626' }, { id: 5, name: 'Oil level', color: '#D97706' }] },
+  { id: 'burner',   title: 'Chart 4 · Burner load',            sub: 'Sheet1 chart 4',                      sensors: [{ id: 1,  name: 'Burner load %', color: '#16A34A' }] },
+  { id: 'moisture', title: 'Chart 5 · Moisture',               sub: 'Sheet1 chart 5',                      sensors: [{ id: 25, name: 'Moisture', color: '#7C3AED' }] },
 ]
 
 const WINDOWS = [
-  { id: 'live', label: 'Live', minutes: 5 },
-  { id: '15m',  label: '15 m', minutes: 15 },
-  { id: 'full', label: 'Full', minutes: null },
+  { id: 'full', label: 'Full run', minutes: null },
 ]
 
 let chartInstances = []
 let resizeObserver = null
 let pollTimer = null
 let initScheduled = false
-const activeWindow = ref('live')
+const activeWindow = ref('full')
 
 const fmt = (n, d = 2) => (n == null || Number.isNaN(Number(n))) ? '—' : Number(n).toFixed(d)
 const fmtInt = (n) => (n == null) ? '—' : Number(n).toLocaleString()
 const hms = (ts) => ts ? new Date(ts).toLocaleTimeString('en-GB', { hour12: false }) : '—'
-
-const streamState = computed(() => {
-  const st = telemetry.stats
-  if (!st || !st.max_ts || !st.sources?.['2']) return 'awaiting'
-  const age = Date.now() - new Date(st.max_ts).getTime()
-  return age < 10_000 ? 'live' : 'stale'
-})
-const stateLabel = computed(() => ({ awaiting: 'Awaiting plant data', live: 'Live stream', stale: 'No recent data' }[streamState.value]))
-const stateColor = computed(() => ({ awaiting: '#94A3B8', live: '#22C55E', stale: '#D97706' }[streamState.value]))
 
 const kpiValues = computed(() => KPIS.map((k) => {
   const row = telemetry.latestById.get(k.sensor)
@@ -68,7 +57,7 @@ const statsCards = computed(() => {
   const agg = new Map()
   const st = telemetry.stats
   if (st && Array.isArray(st.sensors_by_id)) {
-    for (const r of st.sensors_by_id) if (r.source === 2) agg.set(r.sensor_id, r)
+    for (const r of st.sensors_by_id) if (r.source === 1) agg.set(r.sensor_id, r)
   }
   return STATS_CARDS.map((s) => {
     const a = agg.get(s.sensor)
@@ -86,17 +75,9 @@ function chartEmptyOption(text) {
 }
 
 function windowToRange() {
-  const st = telemetry.stats
-  if (!st || !st.max_ts || !st.min_ts) return null
-  const maxTs = new Date(st.max_ts).getTime()
-  const minTs = new Date(st.min_ts).getTime()
-  const w = WINDOWS.find((x) => x.id === activeWindow.value)
-  if (!w) return null
-  if (w.minutes == null) {
-    return { from: new Date(minTs).toISOString(), to: new Date(maxTs).toISOString() }
-  }
-  const fromMs = Math.max(minTs, maxTs - w.minutes * 60 * 1000)
-  return { from: new Date(fromMs).toISOString(), to: new Date(maxTs).toISOString() }
+  const hs = telemetry.hourlySummary.data
+  if (!hs || !hs.length) return null
+  return { from: hs[0].first_ts, to: hs[hs.length - 1].last_ts }
 }
 
 function tryInitCharts() {
@@ -125,7 +106,7 @@ async function renderCharts() {
     const inst = chartInstances[i]
     if (!inst) continue
     if (!rows.length) {
-      inst.setOption(chartEmptyOption(streamState.value === 'awaiting' ? 'Awaiting plant data' : 'No data in window'), { notMerge: true })
+      inst.setOption(chartEmptyOption('No data in window'), { notMerge: true })
       continue
     }
     const times = []
@@ -158,14 +139,9 @@ async function refreshAll() {
   const win = windowToRange()
   if (!win) return
   const ids = [...new Set(CHARTS.flatMap((c) => c.sensors.map((s) => s.id)))]
-  await telemetry.refreshRange(ids, win.from, win.to, 5000)
+  await telemetry.refreshRange(ids, win.from, win.to, 20000)
   await telemetry.refreshHourlySummary()
   await renderCharts()
-}
-
-function setWindow(id) {
-  activeWindow.value = id
-  refreshAll()
 }
 
 onMounted(async () => {
@@ -177,9 +153,26 @@ onMounted(async () => {
     const el = document.getElementById(`chart-${i}`)
     if (el) resizeObserver.observe(el)
   }
-  await new Promise((resolve) => {
-    const unwatch = watch(() => telemetry.stats, (v) => { if (v) { unwatch(); resolve() } }, { immediate: true })
+
+  // Wait for hourly summary to be populated, then call refreshAll
+  // Use a watch that fires when hourlySummary.data.length > 0
+  const ready = new Promise((resolve) => {
+    if (telemetry.hourlySummary.data.length > 0) {
+      resolve()
+      return
+    }
+    const stop = watch(
+      () => telemetry.hourlySummary.data.length,
+      (len) => {
+        if (len > 0) {
+          stop()
+          resolve()
+        }
+      }
+    )
   })
+  await ready
+
   await refreshAll()
   setTimeout(() => {
     for (const inst of chartInstances) if (inst) inst.resize()
@@ -205,15 +198,13 @@ watch(activeWindow, () => { refreshAll() })
 </script>
 
 <template>
-  <!-- Title + toolbar -->
   <div class="title-row">
     <div>
       <h1>Line Speed 30 · Process Overview</h1>
       <div class="meta">
-        <span :style="{ color: stateColor }">●</span>
-        {{ stateLabel }} ·
-        {{ (telemetry.stats?.sources?.['2'] || 0).toLocaleString() }} readings ·
-        latest {{ hms(telemetry.stats?.max_ts) }}
+        <span style="color:#2563EB">&#9679;</span>
+        Historical · Apr 17, 12:09–18:06 ·
+        {{ (telemetry.stats?.sources?.['1'] || 0).toLocaleString() }} readings
       </div>
     </div>
     <div class="toolbar">
@@ -224,11 +215,9 @@ watch(activeWindow, () => { refreshAll() })
           @click="setWindow(w.id)"
         >{{ w.label }}</button>
       </div>
-      <button class="btn" @click="telemetry.refreshCore(); refreshAll()">Refresh</button>
     </div>
   </div>
 
-  <!-- KPI cards -->
   <div class="kpi-row">
     <div class="kpi" v-for="k in kpiValues" :key="k.k">
       <div class="lbl">{{ k.label }}</div>
@@ -243,14 +232,12 @@ watch(activeWindow, () => { refreshAll() })
     </div>
   </div>
 
-  <!-- Hourly summary -->
   <HourlySummary :rows="telemetry.hourlySummary.data" />
 
-  <!-- Charts in 2-col grid (5th spans full width) -->
   <div class="chart-grid">
     <div
       v-for="(c, i) in CHARTS" :key="c.id"
-      :class="['chart-panel', i === CHARTS.length - 1 && CHARTS.length % 2 === 1 ? 'wide' : '', { 'is-empty': streamState === 'awaiting' && !telemetry.range.data.length }]"
+      :class="['chart-panel', i === CHARTS.length - 1 && CHARTS.length % 2 === 1 ? 'wide' : '']"
     >
       <div class="ph">
         <div>
@@ -267,7 +254,6 @@ watch(activeWindow, () => { refreshAll() })
     </div>
   </div>
 
-  <!-- Active Alarms (placeholder) -->
   <div class="card" style="margin-bottom:12px">
     <div class="card-h">
       <span class="t">Active Alarms</span>
@@ -276,7 +262,6 @@ watch(activeWindow, () => { refreshAll() })
     <div style="padding:20px;text-align:center;color:var(--muted);font-size:11.5px">No active alarms</div>
   </div>
 
-  <!-- Statistics row (avg/min/max per sensor) -->
   <div class="sec-h">Statistics<span>over the current window</span></div>
   <div class="kpi-row">
     <div class="kpi" v-for="s in statsCards" :key="s.sensor">
@@ -289,7 +274,6 @@ watch(activeWindow, () => { refreshAll() })
     </div>
   </div>
 
-  <!-- Event feed + Historical readings side by side -->
   <div class="bottom-row" style="margin-top:18px">
     <div class="card">
       <div class="card-h">
@@ -305,9 +289,7 @@ watch(activeWindow, () => { refreshAll() })
         </thead>
         <tbody>
           <tr v-if="!telemetry.historyPivot.data.length">
-            <td colspan="8" style="text-align:center;color:var(--muted);padding:20px">
-              {{ streamState === 'awaiting' ? 'Awaiting plant data' : 'No readings yet' }}
-            </td>
+            <td colspan="8" style="text-align:center;color:var(--muted);padding:20px">No readings</td>
           </tr>
           <tr v-for="r in telemetry.historyPivot.data" :key="r.ts">
             <td class="ts">{{ hms(r.ts) }}</td>
@@ -324,19 +306,12 @@ watch(activeWindow, () => { refreshAll() })
     </div>
     <div class="card">
       <div class="card-h">
-        <span class="t">Event History · Live</span>
-        <span style="font-size:11px;font-weight:600" :style="{ color: stateColor }">● {{ stateLabel }}</span>
+        <span class="t">Event History</span>
+        <span style="font-size:11px;font-weight:600;color:#2563EB">● Historical</span>
       </div>
       <div class="event-feed">
-        <div v-if="!ws.lastHint" style="padding:20px;text-align:center;color:var(--muted);font-size:11.5px">
-          {{ streamState === 'awaiting' ? 'Awaiting plant data · events appear here' : 'Waiting for next hint' }}
-        </div>
-        <div v-else class="ev-row">
-          <div class="et">{{ hms(ws.lastHint.ts) }}</div>
-          <div class="eb">
-            <div class="em">Flush · seq {{ ws.lastHint.last_seq }} · {{ ws.lastHint.inserted }} rows</div>
-            <div><span class="etag ok">OK</span></div>
-          </div>
+        <div style="padding:20px;text-align:center;color:var(--muted);font-size:11.5px">
+          Source=1 is static — no live events
         </div>
       </div>
     </div>

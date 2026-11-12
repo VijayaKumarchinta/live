@@ -43,34 +43,34 @@ export const useTelemetry = defineStore('telemetry', () => {
 
   async function refreshCore() {
     const [l, st, hist] = await Promise.all([
-      api.getLatest(lineId.value, 2),
+      api.getLatest(lineId.value, 1),
       api.getStats(lineId.value),
-      api.getHistory(lineId.value, 12, 0, null, 2),
+      api.getHistory(lineId.value, 12, 0, null, 1),
     ])
     latest.value = l.data || []
     stats.value = st.data || null
     history.value = { data: hist.data || [], meta: hist.meta || null }
     lastUpdated.value = new Date()
     try {
-      const hp = await api.getHistoryPivot(lineId.value, 12, 2)
+      const hp = await api.getHistoryPivot(lineId.value, 12, 1)
       historyPivot.value = { data: hp.data || [], meta: hp.meta || null }
     } catch (e) { /* ignore */ }
   }
 
   async function refreshHourlySummary() {
-    const r = await api.getHourlySummary(lineId.value, 2)
+    const r = await api.getHourlySummary(lineId.value, 1)
     hourlySummary.value = { data: r.data || [], meta: r.meta || null }
     return hourlySummary.value
   }
 
   async function refreshRange(sensorIds, from, to, limit = 5000) {
-    const r = await api.getRange(lineId.value, sensorIds, from, to, limit, 2)
+    const r = await api.getRange(lineId.value, sensorIds, from, to, limit, 1)
     range.value = { data: r.data || [], meta: r.meta || null }
     return range.value
   }
 
   async function refreshHourly(sensorId, from = null, to = null) {
-    const r = await api.getHourly(lineId.value, sensorId, from, to, 2)
+    const r = await api.getHourly(lineId.value, sensorId, from, to, 1)
     hourly.value = { data: r.data || [], meta: r.meta || null }
     return hourly.value
   }

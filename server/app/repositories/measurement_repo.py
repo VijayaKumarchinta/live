@@ -182,7 +182,7 @@ def history_pivot(line_id: int, limit: int = 12, source: int = 2) -> List[Dict[s
         rows = [dict(r) for r in conn.execute(sql, {"line_id": line_id, "source": source, "limit": limit}).mappings().all()]
     by_ts: Dict[str, Dict[str, Any]] = {}
     for r in rows:
-        k = r["ts"].isoformat()
-        by_ts.setdefault(k, {"ts": r["ts"], "sensors": {}})
-        by_ts[k]["sensors"][r["sensor_id"]] = r["value"]
+        iso = r["ts"].isoformat()
+        by_ts.setdefault(iso, {"ts": iso, "sensors": {}})
+        by_ts[iso]["sensors"][r["sensor_id"]] = r["value"]
     return list(by_ts.values())

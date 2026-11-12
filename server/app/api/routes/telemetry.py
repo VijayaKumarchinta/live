@@ -5,7 +5,7 @@ from app.services import telemetry_service
 
 bp = Blueprint("telemetry", __name__, url_prefix="/api")
 
-MAX_RANGE_LIMIT = 5000
+MAX_RANGE_LIMIT = 20000
 MAX_HISTORY_LIMIT = 1000
 DEFAULT_SOURCE = 2
 

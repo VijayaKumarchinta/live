@@ -219,3 +219,25 @@ th{text-align:left;font-weight:600;font-size:10px;color:var(--muted);text-transf
   color: var(--accent);
   box-shadow: 0 1px 2px rgba(15,23,42,.08);
 }
+.hour-table td:nth-child(n+4),
+.hour-table th:nth-child(n+4) {
+  padding-left: 18px;
+}
+/* Hourly summary table — improved spacing (overrides earlier rules) */
+.hour-wrap .hour-table th {
+  padding: 12px 18px !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  color: var(--muted) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+.hour-wrap .hour-table td {
+  padding: 12px 18px !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+  vertical-align: middle !important;
+}
+.hour-wrap .hour-table th:nth-child(n+4),
+.hour-wrap .hour-table td:nth-child(n+4) {
+  text-align: right !important;
+  padding-left: 22px !important;
+}

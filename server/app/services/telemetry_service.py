@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any, Dict, List, Optional
 
 def envelope(data: Any, meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -13,10 +14,15 @@ def error(message: str, status: int = 400) -> tuple:
 def parse_ts(value: Optional[str], default: datetime) -> datetime:
     if not value:
         return default
+    # Try ISO 8601 first
     try:
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise ValueError(f"invalid timestamp: {value}") from exc
+    except ValueError:
+        # Fall back to RFC 2822 (e.g., "Fri, 17 Apr 2026 06:39:53 GMT")
+        try:
+            dt = parsedate_to_datetime(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"invalid timestamp: {value}") from exc
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt
